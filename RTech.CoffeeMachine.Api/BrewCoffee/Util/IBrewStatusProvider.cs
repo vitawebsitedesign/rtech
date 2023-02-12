@@ -5,5 +5,5 @@
 /// </summary>
 public interface IBrewStatusProvider
 {
-    BrewStatus GetBrewStatus();
+    Task<BrewStatus> GetBrewStatus();
 }

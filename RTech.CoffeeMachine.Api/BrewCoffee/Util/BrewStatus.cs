@@ -6,5 +6,6 @@
 public enum BrewStatus
 {
     None = 0,
-    Ready = 1
+    ReadyHot = 1,
+    ReadyIced = 2
 }
