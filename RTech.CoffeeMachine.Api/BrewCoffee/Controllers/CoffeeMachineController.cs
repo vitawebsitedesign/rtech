@@ -48,7 +48,7 @@ public class CoffeeMachineController : ControllerBase
         {
             BrewStatus.ReadyHot => "Your piping hot coffee is ready",
             BrewStatus.ReadyIced => "Your refreshing iced coffee is ready",
-            _ => throw new InvalidOperationException($"Unrecognized brew status: {status}") // Interviewer note: The below exception subsequently gets handled in ErrorController.cs
+            _ => throw new InvalidOperationException($"Unrecognized brew status: {status}") // Interviewer note: This exception subsequently gets handled in ErrorController.cs
         };
 
         var prepared = GetPreparedTimestamp(_dateTimeProvider.GetLocalNow());
