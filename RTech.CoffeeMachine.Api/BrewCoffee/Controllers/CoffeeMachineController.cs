@@ -44,21 +44,15 @@ public class CoffeeMachineController : ControllerBase
             throw;
         }
 
-        if (status == BrewStatus.ReadyHot)
+        var message = status switch
         {
-            var prepared = GetPreparedTimestamp(_dateTimeProvider.GetLocalNow());
-            return Ok(new BrewStatusResponse("Your piping hot coffee is ready", prepared));
-        }
-        else if (status == BrewStatus.ReadyIced)
-        {
-            var prepared = GetPreparedTimestamp(_dateTimeProvider.GetLocalNow());
-            return Ok(new BrewStatusResponse("Your refreshing iced coffee is ready", prepared));
-        }
-        else
-        {
-            // Interviewer note: The below exception subsequently gets handled in ErrorController.cs
-            throw new InvalidOperationException($"Unrecognized brew status: {status}");
-        }
+            BrewStatus.ReadyHot => "Your piping hot coffee is ready",
+            BrewStatus.ReadyIced => "Your refreshing iced coffee is ready",
+            _ => throw new InvalidOperationException($"Unrecognized brew status: {status}") // Interviewer note: The below exception subsequently gets handled in ErrorController.cs
+        };
+
+        var prepared = GetPreparedTimestamp(_dateTimeProvider.GetLocalNow());
+        return Ok(new BrewStatusResponse(message, prepared));
     }
 
     private string GetPreparedTimestamp(DateTime localNow)
