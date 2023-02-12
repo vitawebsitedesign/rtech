@@ -135,6 +135,30 @@ public class CoffeeMachineControllerTests : IClassFixture<WebApplicationFactory<
         content.Prepared.ShouldBe(expectedPrepared);
     }
 
+    [Fact]
+    public async Task GetBrewStatus_WhenTemperatureRequestThrowsException_ShouldReturn502()
+    {
+        false.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GetBrewStatus_WhenTemperatureRequestReturns500_ShouldReturn502()
+    {
+        false.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GetBrewStatus_WhenTemperatureAbove30Degrees_ShouldReturnIcedCoffee()
+    {
+        false.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GetBrewStatus_WhenTemperatureBelow31Degrees_ShouldReturnHotCoffee()
+    {
+        false.ShouldBeTrue();
+    }
+
     private Task<HttpResponseMessage> GetEndpointResponse(Action<IServiceCollection> servicesConfiguration)
     {
         var mockFactory = _factory.WithWebHostBuilder(builder =>
