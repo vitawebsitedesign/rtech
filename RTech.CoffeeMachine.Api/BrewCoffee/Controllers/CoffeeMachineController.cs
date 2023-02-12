@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
+using RTech.CoffeeMachine.Api.BrewCoffee.Filters;
 using RTech.CoffeeMachine.Api.BrewCoffee.Models;
 using RTech.CoffeeMachine.Api.BrewCoffee.Util;
 
@@ -12,59 +12,47 @@ public class CoffeeMachineController : ControllerBase
     private readonly ILogger<CoffeeMachineController> _logger;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IBrewStatusProvider _brewStatusProvider;
-    // Interviewer note: MemoryCache from Microsoft.Extensions.Caching.Abstractions is thread safe
-    private readonly IMemoryCache _cache;
-    public static readonly string CACHE_KEY_NUM_REQUESTS = $"{nameof(CoffeeMachineController)}:numRequests";
 
     public CoffeeMachineController(
         ILogger<CoffeeMachineController> logger,
         IDateTimeProvider dateTimeProvider,
-        IBrewStatusProvider brewStatusProvider,
-        IMemoryCache cache
+        IBrewStatusProvider brewStatusProvider
     )
     {
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
         _brewStatusProvider = brewStatusProvider;
-        _cache = cache;
-
-        if (!_cache.TryGetValue<long>(CACHE_KEY_NUM_REQUESTS, out var _))
-        {
-            _cache.Set<long>(CACHE_KEY_NUM_REQUESTS, 0);
-        }
     }
 
+    [ServiceFilter(typeof(TeapotFilter))]
+    [ServiceFilter(typeof(BrewStatusUnavailableFilter))]
     [HttpGet("brew-coffee")]
-    public IActionResult GetBrewStatus()
+    public async Task<IActionResult> GetBrewStatus()
     {
-        // Interviewer note: I'm assuming that the april fools check uses local time (operating system time)
-        var localNow = _dateTimeProvider.GetLocalNow();
-        var isApril1st = localNow.Month == 4 && localNow.Day == 1;
-        if (isApril1st)
+        BrewStatus status;
+        try
         {
-            return StatusCode(StatusCodes.Status418ImATeapot, null);
+            status = await _brewStatusProvider.GetBrewStatus();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve brew status");
+            return StatusCode(StatusCodes.Status502BadGateway, null);
+        }
+        catch (Exception)
+        {
+            throw;
         }
 
-        // Interviewer note: I'm assuming that on april 1st, every 5th request still returns 418
-        var numRequests = _cache.Get<long>(CACHE_KEY_NUM_REQUESTS);
-        numRequests++;
-        _cache.Set(CACHE_KEY_NUM_REQUESTS, numRequests);
-        if (numRequests % 5 == 0)
+        var message = status switch
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, null);
-        }
+            BrewStatus.ReadyHot => "Your piping hot coffee is ready",
+            BrewStatus.ReadyIced => "Your refreshing iced coffee is ready",
+            _ => throw new InvalidOperationException($"Unrecognized brew status: {status}") // Interviewer note: This exception subsequently gets handled in ErrorController.cs
+        };
 
-        var status = _brewStatusProvider.GetBrewStatus();
-        if (status == BrewStatus.Ready)
-        {
-            var prepared = GetPreparedTimestamp(localNow);
-            return Ok(new BrewStatusResponse("Your piping hot coffee is ready", prepared));
-        }
-        else
-        {
-            // Interviewer note: The below exception subsequently gets handled in ErrorController.cs
-            throw new InvalidOperationException($"Unrecognized brew status: {status}");
-        }
+        var prepared = GetPreparedTimestamp(_dateTimeProvider.GetLocalNow());
+        return Ok(new BrewStatusResponse(message, prepared));
     }
 
     private string GetPreparedTimestamp(DateTime localNow)
